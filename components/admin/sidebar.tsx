@@ -1,4 +1,4 @@
-    'use client'
+'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -14,7 +14,8 @@ import {
   Menu,
   X,
   FileText,
-  Clock
+  Clock,
+  DollarSign
 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
@@ -51,6 +52,11 @@ const menuItems = [
     href: '/admin/attendance',
     label: 'الحضور',
     icon: Clock
+  },
+  {
+    href: '/admin/salary-requests',
+    label: 'طلبات مراجعة الرواتب',
+    icon: DollarSign
   },
   {
     href: '/admin/settings',

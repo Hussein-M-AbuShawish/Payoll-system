@@ -1,11 +1,6 @@
 // Payroll-specific store actions
 import { useAppStore } from "./store";
-import type {
-  PayrollSheet,
-  SalaryRequest,
-  AuditLog,
-  PayrollSheetRow,
-} from "./types";
+import type { PayrollSheet, AuditLog, PayrollSheetRow } from "./types";
 
 export const payrollStoreActions = {
   // Payroll Sheets
@@ -32,6 +27,17 @@ export const payrollStoreActions = {
     useAppStore.setState((state) => ({
       payrollSheets: [...(state.payrollSheets || []), newSheet],
     }));
+    useAppStore.getState().addAuditLog({
+      employeeId: useAppStore.getState().currentUser?.employeeId || "N/A",
+      action: "payroll_upload",
+      changes: {
+        month: newSheet.month,
+        year: newSheet.year,
+        fileName: newSheet.fileName,
+      },
+      changedBy: useAppStore.getState().currentUser?.fullName || "System",
+      timestamp: new Date(),
+    });
     return newSheet;
   },
 
@@ -75,41 +81,6 @@ export const payrollStoreActions = {
     }));
   },
 
-  // Salary Requests
-  addSalaryRequest: (
-    requestData: Omit<SalaryRequest, "id" | "createdAt" | "updatedAt">,
-  ) => {
-    const newRequest: SalaryRequest = {
-      ...requestData,
-      id: crypto.randomUUID(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    useAppStore.setState((state) => ({
-      salaryRequests: [...(state.salaryRequests || []), newRequest],
-    }));
-    return newRequest;
-  },
-
-  updateSalaryRequest: (id: string, data: Partial<SalaryRequest>) => {
-    useAppStore.setState((state) => ({
-      salaryRequests: (state.salaryRequests || []).map((req) =>
-        req.id === id ? { ...req, ...data, updatedAt: new Date() } : req,
-      ),
-    }));
-  },
-
-  getSalaryRequest: (id: string) => {
-    const state = useAppStore.getState();
-    return (state.salaryRequests || []).find((r) => r.id === id);
-  },
-
-  deleteSalaryRequest: (id: string) => {
-    useAppStore.setState((state) => ({
-      salaryRequests: (state.salaryRequests || []).filter((r) => r.id !== id),
-    }));
-  },
-
   // Audit Logs
   addAuditLog: (logData: Omit<AuditLog, "id">) => {
     const newLog: AuditLog = {
@@ -120,13 +91,6 @@ export const payrollStoreActions = {
       auditLogs: [...(state.auditLogs || []), newLog],
     }));
     return newLog;
-  },
-
-  // Notifications
-  deleteNotification: (id: string) => {
-    useAppStore.setState((state) => ({
-      notifications: state.notifications.filter((n) => n.id !== id),
-    }));
   },
 
   // Settings

@@ -29,7 +29,11 @@ interface AppState {
   deleteEmployee: (id: string) => void;
   getEmployeeById: (id: string) => Employee | undefined;
   getEmployeeByEmployeeId: (employeeId: string) => Employee | undefined;
-  employeeUpdateProfile: (id: string, data: Partial<Employee>, changedBy: string) => void;
+  employeeUpdateProfile: (
+    id: string,
+    data: Partial<Employee>,
+    changedBy: string,
+  ) => void;
 
   // Departments
   departments: Department[];
@@ -126,9 +130,7 @@ export const useAppStore = create<AppState>()(
       addEmployee: (employeeData) => {
         const baseSalary = employeeData.rate * employeeData.workHours;
         const remaining =
-          baseSalary -
-          employeeData.withdrawals -
-          employeeData.deductions;
+          baseSalary - employeeData.withdrawals - employeeData.deductions;
         const newEmployee: Employee = {
           ...employeeData,
           id: crypto.randomUUID(),
@@ -161,12 +163,12 @@ export const useAppStore = create<AppState>()(
 
           const oldEmp = state.employees[empIndex];
           const updatedEmp = { ...oldEmp, ...data, updatedAt: new Date() };
-          
+
           // Re-calculate baseSalary and remaining if rate or workHours changed
           if (data.rate !== undefined || data.workHours !== undefined) {
             updatedEmp.baseSalary = updatedEmp.rate * updatedEmp.workHours;
           }
-          
+
           updatedEmp.remaining =
             updatedEmp.baseSalary -
             updatedEmp.withdrawals -
@@ -206,7 +208,7 @@ export const useAppStore = create<AppState>()(
         // Create audit log
         get().addAuditLog({
           employeeId: oldEmp.employeeId,
-          action: 'profile_update',
+          action: "profile_update",
           changes: data,
           changedBy: changedBy,
           timestamp: new Date(),
@@ -214,9 +216,9 @@ export const useAppStore = create<AppState>()(
 
         // Send notification to admin
         get().addNotification({
-          title: 'تحديث الملف الشخصي',
+          title: "تحديث الملف الشخصي",
           message: `قام الموظف ${oldEmp.fullName} بتحديث بيانات ملفه الشخصي.`,
-          type: 'info',
+          type: "info",
         });
       },
 
@@ -264,6 +266,51 @@ export const useAppStore = create<AppState>()(
         }));
       },
 
+      // Salary Requests
+      salaryRequests: [],
+      addSalaryRequest: (requestData) => {
+        const newRequest: SalaryRequest = {
+          ...requestData,
+          id: crypto.randomUUID(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        set((state) => ({
+          salaryRequests: [...state.salaryRequests, newRequest],
+        }));
+        get().addNotification({
+          title: "طلب مراجعة راتب جديد",
+          message: `تم تقديم طلب مراجعة راتب جديد من قبل ${requestData.fullName}.`,
+          type: "info",
+        });
+        return newRequest;
+      },
+      updateSalaryRequest: (id, data) => {
+        set((state) => ({
+          salaryRequests: state.salaryRequests.map((req) =>
+            req.id === id ? { ...req, ...data, updatedAt: new Date() } : req,
+          ),
+        }));
+        const updatedRequest = get().salaryRequests.find(
+          (req) => req.id === id,
+        );
+        if (updatedRequest && data.status) {
+          let notificationMessage = "";
+          if (data.status === "approved") {
+            notificationMessage = `تمت الموافقة على طلب مراجعة الراتب الخاص بك من قبل الإدارة.`;
+          } else if (data.status === "rejected") {
+            notificationMessage = `تم رفض طلب مراجعة الراتب الخاص بك من قبل الإدارة.`;
+          }
+          if (notificationMessage) {
+            get().addNotification({
+              title: "تحديث طلب مراجعة الراتب",
+              message: notificationMessage,
+              type: data.status === "approved" ? "success" : "error",
+            });
+          }
+        }
+      },
+
       // Audit Logs
       auditLogs: [],
 
@@ -274,6 +321,20 @@ export const useAppStore = create<AppState>()(
           timestamp: new Date(),
         };
         set((state) => ({ auditLogs: [newLog, ...state.auditLogs] }));
+
+        if (log.action === "profile_update") {
+          get().addNotification({
+            title: "تحديث ملف الموظف",
+            message: `تم تحديث ملف الموظف ${log.changedBy} (${log.employeeId}).`,
+            type: "info",
+          });
+        } else if (log.action === "payroll_upload") {
+          get().addNotification({
+            title: "تحميل كشوف الرواتب",
+            message: `تم تحميل كشوف رواتب جديدة بواسطة ${log.changedBy}.`,
+            type: "info",
+          });
+        }
       },
 
       // Notifications
@@ -302,6 +363,14 @@ export const useAppStore = create<AppState>()(
       markAllAsRead: () => {
         set((state) => ({
           notifications: state.notifications.map((n) => ({ ...n, read: true })),
+        }));
+      },
+
+      getSalaryRequest: (id: string) =>
+        get().salaryRequests.find((r) => r.id === id),
+      deleteSalaryRequest: (id: string) => {
+        set((state) => ({
+          salaryRequests: state.salaryRequests.filter((r) => r.id !== id),
         }));
       },
 

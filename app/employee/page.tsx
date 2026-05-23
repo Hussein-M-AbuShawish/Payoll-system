@@ -7,12 +7,12 @@ import { useAppStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { 
-  User, 
-  Building2, 
-  Wallet, 
-  Clock, 
-  TrendingDown, 
+import {
+  User,
+  Building2,
+  Wallet,
+  Clock,
+  TrendingDown,
   Banknote,
   FileText,
   LogOut,
@@ -29,6 +29,8 @@ import jsPDF from 'jspdf'
 import 'jspdf-autotable'
 import { toast } from 'sonner'
 import { ProfileEditDialog } from '@/components/employee/profile-edit-dialog'
+import { SalaryReviewDialog } from '@/components/employee/salary-review-dialog'
+import { SalaryReviewTracker } from '@/components/employee/salary-review-tracker'
 
 const statusLabels: Record<PaymentStatus, string> = {
   bank_transfer: 'تحويل بنكي',
@@ -54,7 +56,7 @@ export default function EmployeeDashboard() {
       router.push('/')
       return
     }
-    
+
     const emp = employees.find(e => e.employeeId === currentUser.employeeId)
     if (emp) {
       setEmployee(emp)
@@ -69,21 +71,21 @@ export default function EmployeeDashboard() {
 
   const exportPDF = () => {
     if (!employee) return
-    
+
     const doc = new jsPDF()
-    
+
     doc.setFontSize(20)
     doc.text('O2 Payroll System', 105, 20, { align: 'center' })
     doc.setFontSize(14)
     doc.text('Salary Slip', 105, 30, { align: 'center' })
-    
+
     doc.setFontSize(12)
     const startY = 50
     doc.text(`Employee ID: ${employee.employeeId}`, 20, startY)
     doc.text(`Name: ${employee.fullName}`, 20, startY + 10)
     doc.text(`Department: ${employee.department}`, 20, startY + 20)
     doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, startY + 30)
-    
+
     const tableData = [
       ['Base Salary', `${employee.baseSalary.toLocaleString()} ILS`],
       ['Work Hours', `${employee.workHours} hours`],
@@ -91,7 +93,7 @@ export default function EmployeeDashboard() {
       ['Deductions', `-${employee.deductions.toLocaleString()} ILS`],
       ['Net Salary', `${employee.remaining.toLocaleString()} ILS`],
     ]
-    
+
     // @ts-expect-error - jspdf-autotable types
     doc.autoTable({
       startY: startY + 45,
@@ -100,7 +102,7 @@ export default function EmployeeDashboard() {
       theme: 'grid',
       headStyles: { fillColor: [59, 130, 246] },
     })
-    
+
     doc.save(`salary-slip-${employee.employeeId}.pdf`)
     toast.success('تم تحميل كشف الراتب')
   }
@@ -135,7 +137,7 @@ export default function EmployeeDashboard() {
               <p className="text-xs text-muted-foreground">لوحة الموظف</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -223,8 +225,9 @@ export default function EmployeeDashboard() {
                     <span className="text-sm">{employee.workHours} ساعة</span>
                   </div>
                 </div>
-                <div className="pt-4">
+                <div className="pt-4 space-y-2">
                   <ProfileEditDialog employee={employee} />
+                  <SalaryReviewDialog employee={employee} />
                 </div>
               </CardContent>
             </Card>
@@ -268,7 +271,7 @@ export default function EmployeeDashboard() {
                     <p className="text-xl font-bold text-green-600">{employee.remaining.toLocaleString()} ₪</p>
                   </div>
                 </div>
-                
+
                 <div className="mt-6 flex justify-end">
                   <Button onClick={exportPDF}>
                     <FileText className="h-4 w-4 ml-2" />
@@ -280,11 +283,21 @@ export default function EmployeeDashboard() {
           </motion.div>
         </div>
 
-        {/* Salary History */}
+        {/* Salary Review Tracker */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
+          className="mb-6"
+        >
+          <SalaryReviewTracker employeeId={employee.id} />
+        </motion.div>
+
+        {/* Salary History */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
         >
           <Card>
             <CardHeader>
